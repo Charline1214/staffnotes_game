@@ -1,0 +1,1407 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>五线谱认音游戏</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --brown-dark: #3d1a00;
+  --brown-mid:  #5a3e1b;
+  --brown-light:#c8a87a;
+  --cream:      #f5e6c8;
+  --cream-light:#fffef5;
+  --red-dark:   #8b2500;
+  --red:        #c0392b;
+  --red-light:  #e74c3c;
+  --gold:       #f5c842;
+  --gold-dark:  #d4a017;
+  --green:      #27ae60;
+  --green-dark: #1e8449;
+  --blue:       #2980b9;
+  --blue-dark:  #1a5276;
+  --purple:     #8e44ad;
+  --purple-dark:#6c3483;
+  --font: 'Press Start 2P', 'Courier New', monospace;
+
+  /* Base sizes — scale up for readability */
+  --fs-xs:   13px;
+  --fs-sm:   15px;
+  --fs-md:   18px;
+  --fs-lg:   22px;
+  --fs-xl:   28px;
+  --fs-2xl:  36px;
+  --fs-3xl:  52px;
+}
+
+html, body {
+  width: 100%; height: 100%;
+  background: var(--brown-dark);
+  font-family: var(--font);
+  -webkit-text-size-adjust: 100%;
+}
+
+/* ═══════════════════════════════════════
+   APP SHELL  — landscape: sidebar + main
+              — portrait:  topnav + main
+   ═══════════════════════════════════════ */
+#app {
+  display: flex;
+  width: 100vw; height: 100vh;
+  background: var(--cream);
+  background-image:
+    repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(90,62,27,.06) 39px,rgba(90,62,27,.06) 40px),
+    repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(90,62,27,.06) 39px,rgba(90,62,27,.06) 40px);
+  overflow: hidden;
+}
+
+/* ─── SIDEBAR (landscape) ─── */
+#sidebar {
+  width: 300px;
+  min-width: 300px;
+  background: linear-gradient(180deg,#6b0f00 0%,#8b2500 30%,#c0392b 70%,#8b2500 100%);
+  display: flex;
+  flex-direction: column;
+  border-right: 5px solid var(--brown-dark);
+  box-shadow: 4px 0 16px rgba(0,0,0,.45);
+  overflow-y: auto;
+  flex-shrink: 0;
+  transition: transform .25s ease;
+}
+
+.stripe {
+  height: 7px;
+  background: repeating-linear-gradient(90deg,var(--gold) 0,var(--gold) 12px,var(--red-dark) 12px,var(--red-dark) 24px);
+  flex-shrink: 0;
+}
+
+#logo-area {
+  padding: 20px 16px 14px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.logo-title {
+  font-size: var(--fs-md);
+  color: var(--cream);
+  text-shadow: 2px 2px 0 var(--brown-dark);
+  line-height: 2;
+  margin-bottom: 4px;
+}
+.logo-sub {
+  font-size: var(--fs-xs);
+  color: var(--gold);
+  text-shadow: 1px 1px 0 var(--brown-dark);
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+}
+.sidebar-staff { margin: 6px auto; display: block; }
+
+#challenger-badge {
+  margin: 0 14px 12px;
+  background: var(--gold);
+  border: 3px solid var(--brown-dark);
+  padding: 8px 12px;
+  text-align: center;
+  box-shadow: 3px 3px 0 var(--brown-dark);
+  flex-shrink: 0;
+}
+.badge-label { font-size: var(--fs-xs); color: var(--brown-dark); }
+#badge-name  { font-size: var(--fs-sm); color: var(--red-dark); margin-top: 4px; }
+
+#nav-menu { flex: 1; display: flex; flex-direction: column; }
+
+.nav-item {
+  flex: 1;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  padding: 0 22px;
+  gap: 16px;
+  cursor: pointer;
+  border: none;
+  border-bottom: 3px solid rgba(0,0,0,.22);
+  font-family: var(--font);
+  font-size: var(--fs-sm);
+  color: rgba(255,255,255,.93);
+  text-shadow: 1px 1px 0 rgba(0,0,0,.5);
+  text-align: left;
+  position: relative;
+  overflow: hidden;
+  transition: filter .1s;
+}
+.nav-item::before { content:''; position:absolute; inset:0; background:rgba(255,255,255,0); transition:background .1s; }
+.nav-item:hover::before  { background:rgba(255,255,255,.08); }
+.nav-item.active::before { background:rgba(0,0,0,.14); }
+.nav-item.active { border-left: 7px solid var(--gold); padding-left: 15px; }
+.nav-item.active::after {
+  content:''; position:absolute; right:-1px; top:50%; transform:translateY(-50%);
+  border-top:16px solid transparent; border-bottom:16px solid transparent;
+  border-right:16px solid var(--cream);
+}
+.nav-item:active { filter:brightness(.85); }
+
+.nav-home   { background:linear-gradient(135deg,#8b2500,#c0392b); }
+.nav-chall  { background:linear-gradient(135deg,#1a5276,#2980b9); }
+.nav-diff   { background:linear-gradient(135deg,#1e5631,#27ae60); }
+.nav-game   { background:linear-gradient(135deg,#6c3483,#8e44ad); }
+.nav-scores { background:linear-gradient(135deg,#7d6608,#d4ac0d); }
+
+.nav-icon  { font-size: 26px; flex-shrink: 0; filter:drop-shadow(1px 1px 0 rgba(0,0,0,.4)); }
+.nav-label { line-height:1.7; }
+.nav-label-sub { font-size: var(--fs-xs); opacity:.72; margin-top:3px; }
+
+.sidebar-footer {
+  padding: 10px;
+  text-align: center;
+  font-size: var(--fs-xs);
+  color: rgba(255,255,255,.35);
+  border-top: 1px solid rgba(255,255,255,.13);
+  flex-shrink: 0;
+}
+
+/* ─── TOPNAV (portrait / hamburger) ─── */
+#topnav {
+  display: none;
+  background: linear-gradient(135deg,#8b2500,#c0392b);
+  flex-shrink: 0;
+  flex-direction: column;
+}
+#topnav-bar {
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+  height: 64px;
+  gap: 14px;
+}
+#hamburger {
+  background: none; border: none; cursor: pointer;
+  display: flex; flex-direction: column; gap: 5px; padding: 4px;
+}
+#hamburger span {
+  display: block; width: 28px; height: 4px;
+  background: var(--gold); border-radius: 2px;
+}
+#topnav-title { font-size: var(--fs-md); color: var(--cream); text-shadow: 1px 1px 0 var(--brown-dark); flex: 1; }
+#topnav-badge { font-size: var(--fs-xs); color: var(--gold); }
+
+#mobile-menu {
+  display: none;
+  flex-direction: column;
+  background: var(--brown-dark);
+  border-top: 3px solid var(--brown-mid);
+}
+#mobile-menu.open { display: flex; }
+
+.mobile-nav-item {
+  display: flex; align-items: center; gap: 14px;
+  padding: 16px 22px;
+  font-family: var(--font);
+  font-size: var(--fs-md);
+  color: var(--cream);
+  cursor: pointer;
+  border: none;
+  border-bottom: 2px solid rgba(255,255,255,.08);
+  text-align: left;
+}
+.mobile-nav-item:active { background: rgba(255,255,255,.1); }
+.mni-home   { background:rgba(192,57,43,.6); }
+.mni-chall  { background:rgba(41,128,185,.6); }
+.mni-diff   { background:rgba(39,174,96,.6); }
+.mni-game   { background:rgba(142,68,173,.6); }
+.mni-scores { background:rgba(212,172,13,.6); }
+
+/* ─── MAIN ─── */
+#main { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
+
+#topbar {
+  background: var(--brown-dark);
+  padding: 0 24px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  border-bottom: 3px solid var(--brown-mid);
+}
+.topbar-title { font-size: var(--fs-sm); color: var(--gold); letter-spacing: 2px; }
+.topbar-info  { font-size: var(--fs-xs); color: var(--brown-light); display:flex; gap:20px; }
+.topbar-score { color: var(--gold); }
+
+#content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 28px 32px;
+  -webkit-overflow-scrolling: touch;
+}
+#content::-webkit-scrollbar { width: 8px; }
+#content::-webkit-scrollbar-track { background: var(--cream); }
+#content::-webkit-scrollbar-thumb { background: var(--red); border: 2px solid var(--cream); }
+
+/* ═══════════════════════════════════════
+   COMPONENTS
+   ═══════════════════════════════════════ */
+
+/* Cards */
+.card {
+  background: var(--cream-light);
+  border: 3px solid var(--brown-mid);
+  padding: 22px;
+  margin-bottom: 18px;
+  box-shadow: 5px 5px 0 var(--brown-mid);
+}
+.card-title {
+  font-size: var(--fs-md);
+  color: var(--red-dark);
+  border-bottom: 2px solid var(--red-dark);
+  padding-bottom: 10px;
+  margin-bottom: 18px;
+}
+
+/* Buttons */
+.btn {
+  font-family: var(--font);
+  cursor: pointer;
+  border: 3px solid var(--brown-mid);
+  box-shadow: 4px 4px 0 var(--brown-dark);
+  transition: all .07s;
+  letter-spacing: .5px;
+  font-size: var(--fs-md);
+  padding: 14px 22px;
+}
+.btn:active { transform:translate(2px,2px); box-shadow:1px 1px 0 var(--brown-dark)!important; }
+
+.btn-red   { background:linear-gradient(180deg,var(--red-light),var(--red)); color:var(--cream); }
+.btn-gold  { background:linear-gradient(180deg,var(--gold),var(--gold-dark)); color:var(--brown-dark); font-size:var(--fs-lg); box-shadow:5px 5px 0 var(--brown-dark); }
+.btn-green { background:linear-gradient(180deg,var(--green),var(--green-dark)); color:var(--cream); border-color:#145a32; box-shadow:3px 3px 0 #0d3b23; }
+.btn-blue  { background:linear-gradient(180deg,var(--blue),var(--blue-dark)); color:var(--cream); border-color:var(--blue-dark); }
+.btn-full  { width:100%; text-align:center; display:block; }
+
+/* Input */
+.pixel-input {
+  background: var(--cream-light);
+  border: 3px solid var(--brown-mid);
+  padding: 14px 16px;
+  font-size: var(--fs-md);
+  font-family: var(--font);
+  color: var(--brown-dark);
+  outline: none;
+  width: 100%;
+}
+.pixel-input::placeholder { color: var(--brown-light); }
+.pixel-input:focus { border-color:var(--red); box-shadow:0 0 0 3px rgba(192,57,43,.2); }
+
+/* Radio */
+.radio-group  { margin-bottom: 20px; }
+.radio-label  { font-size: var(--fs-sm); color: var(--brown-mid); margin-bottom: 12px; display: block; }
+.radio-options{ display:flex; flex-wrap:wrap; gap:10px; }
+.radio-opt {
+  display:flex; align-items:center; gap:10px;
+  padding: 12px 18px;
+  background: var(--cream);
+  border: 3px solid var(--brown-mid);
+  cursor: pointer;
+  font-size: var(--fs-sm);
+  color: var(--brown-dark);
+  box-shadow: 3px 3px 0 var(--brown-mid);
+  user-select: none;
+  transition: all .07s;
+}
+.radio-opt:hover { background:#ede0c4; }
+.radio-opt.selected { background:var(--red); color:var(--cream); border-color:var(--red-dark); box-shadow:3px 3px 0 var(--red-dark); }
+.radio-dot { width:16px; height:16px; border:3px solid currentColor; flex-shrink:0; position:relative; }
+.radio-opt.selected .radio-dot::after { content:''; position:absolute; inset:2px; background:var(--gold); }
+.section-hint { font-size:var(--fs-xs); color:var(--brown-light); margin-top:6px; line-height:1.9; }
+
+/* Progress */
+.progress-bar  { height:16px; background:var(--gold-dark); border:3px solid var(--brown-mid); margin-bottom:16px; overflow:hidden; }
+.progress-fill { height:100%; background:repeating-linear-gradient(90deg,var(--gold) 0,var(--gold) 12px,#e8b520 12px,#e8b520 24px); transition:width .3s; }
+
+/* Timer */
+.timer-box     { display:inline-block; padding:8px 24px; font-size:var(--fs-2xl); border:4px solid var(--brown-mid); box-shadow:4px 4px 0 var(--brown-mid); margin-bottom:14px; }
+.timer-normal  { background:var(--gold); color:var(--brown-dark); }
+.timer-urgent  { background:var(--red); color:#fff; }
+
+/* Feedback */
+.feedback-banner { padding:14px 18px; margin-bottom:14px; font-size:var(--fs-md); border:3px solid; line-height:1.8; }
+.fb-correct { background:#d5f5e3; color:#145a32; border-color:#145a32; box-shadow:3px 3px 0 #0d3b23; }
+.fb-wrong   { background:#fadbd8; color:var(--red-dark); border-color:var(--red-dark); box-shadow:3px 3px 0 #6b0f00; }
+.fb-timeout { background:#fdebd0; color:#7e5109; border-color:#7e5109; box-shadow:3px 3px 0 #4a2f07; }
+
+/* Option buttons */
+.opt-btn {
+  width:100%; padding:18px 10px;
+  font-family:var(--font); font-size:var(--fs-lg);
+  border:3px solid var(--brown-mid); box-shadow:4px 4px 0 var(--brown-mid);
+  margin-bottom:12px; cursor:pointer; text-align:center;
+  transition:all .07s; letter-spacing:.5px;
+  background:linear-gradient(180deg,var(--cream-light),#ede0c4);
+  color:var(--brown-dark);
+}
+.opt-btn:hover:not(:disabled) { background:linear-gradient(180deg,#ede0c4,#d4c4a0); }
+.opt-btn:active:not(:disabled){ transform:translate(2px,2px); box-shadow:1px 1px 0 var(--brown-mid)!important; }
+.opt-btn:disabled { cursor:default; }
+.opt-btn.correct { background:linear-gradient(180deg,#27ae60,#1e8449); color:#fff; border-color:#145a32; box-shadow:4px 4px 0 #0d3b23; }
+.opt-btn.wrong   { background:linear-gradient(180deg,var(--red-light),var(--red)); color:#fff; border-color:var(--red-dark); box-shadow:4px 4px 0 var(--red-dark); }
+.opt-btn.neutral-show { background:linear-gradient(180deg,#ede0c4,#d4c4a0); color:var(--brown-mid); }
+
+/* Scores */
+.score-big { font-size:var(--fs-3xl); color:var(--red-dark); text-align:center; text-shadow:3px 3px 0 var(--brown-mid); line-height:1; margin:10px 0; }
+.leaderboard-row { display:flex; justify-content:space-between; align-items:center; padding:14px 18px; margin-bottom:8px; border:3px solid var(--brown-mid); box-shadow:3px 3px 0 var(--brown-mid); font-size:var(--fs-md); }
+.lr-gold   { background:var(--gold); }
+.lr-silver { background:#e8e0d0; }
+.lr-bronze { background:#f0dfc8; }
+.lr-normal { background:var(--cream); }
+
+/* Warmup note badge */
+.warmup-note-badge { background:var(--gold); border:4px solid var(--brown-mid); padding:20px; text-align:center; box-shadow:4px 4px 0 var(--brown-mid); margin-bottom:16px; }
+.warmup-note-name  { font-size:var(--fs-3xl); color:var(--red-dark); margin-bottom:8px; }
+.warmup-solfege    { font-size:var(--fs-xl); color:var(--brown-dark); }
+
+/* Challenger rows */
+.chall-row { display:flex; align-items:center; gap:12px; padding:14px 16px; margin-bottom:10px; background:var(--cream); border:3px solid var(--brown-mid); box-shadow:3px 3px 0 var(--brown-mid); }
+.chall-row.active-row { background:var(--gold); border-color:var(--gold-dark); box-shadow:3px 3px 0 var(--gold-dark); }
+.chall-row-name { flex:1; font-size:var(--fs-md); color:var(--brown-dark); }
+
+/* Chip */
+.chall-chip {
+  padding: 8px 16px;
+  background: var(--cream); border: 3px solid var(--brown-mid);
+  font-family:var(--font); font-size:var(--fs-sm); color:var(--brown-dark);
+  cursor:pointer; box-shadow:3px 3px 0 var(--brown-mid); transition:all .07s;
+}
+.chall-chip:hover { background:var(--gold); }
+.chall-chip.active { background:var(--red); color:var(--cream); border-color:var(--red-dark); box-shadow:3px 3px 0 var(--red-dark); }
+.chall-chip-add { background:var(--gold); color:var(--brown-dark); border-color:var(--gold-dark); box-shadow:3px 3px 0 var(--gold-dark); }
+
+/* HOME */
+.home-welcome {
+  background:linear-gradient(135deg,var(--red-dark),var(--red));
+  border:3px solid var(--brown-dark); padding:24px 28px;
+  margin-bottom:0; box-shadow:5px 5px 0 var(--brown-dark); position:relative; overflow:hidden;
+}
+.home-welcome::after { content:'𝄞'; position:absolute; right:24px; top:50%; transform:translateY(-50%); font-size:100px; color:rgba(255,255,255,.07); font-family:serif; line-height:1; pointer-events:none; }
+.home-welcome h1 { font-size:var(--fs-xl); color:var(--cream); text-shadow:2px 2px 0 var(--brown-dark); margin-bottom:8px; }
+.home-welcome p  { font-size:var(--fs-sm); color:rgba(255,255,255,.78); line-height:2.2; }
+
+.home-blocks { display:grid; grid-template-rows:1fr 1fr 1fr 1fr; flex:1; }
+.home-block {
+  display:flex; align-items:center; padding:0 30px;
+  cursor:pointer; border:none; border-bottom:3px solid rgba(0,0,0,.18);
+  font-family:var(--font); text-align:left; gap:22px;
+  transition:filter .1s; position:relative; overflow:hidden;
+}
+.home-block:last-child { border-bottom:none; }
+.home-block:hover  { filter:brightness(1.08); }
+.home-block:active { filter:brightness(.9); }
+.home-block::after { content:''; position:absolute; inset:0; background:repeating-linear-gradient(-45deg,transparent 0,transparent 20px,rgba(255,255,255,.025) 20px,rgba(255,255,255,.025) 22px); pointer-events:none; }
+
+.hb-chall  { background:linear-gradient(135deg,#1a3f5c,#2471a3); }
+.hb-diff   { background:linear-gradient(135deg,#145a32,#1e8449); }
+.hb-game   { background:linear-gradient(135deg,#5b2c6f,#7d3c98); }
+.hb-scores { background:linear-gradient(135deg,#7d6608,#b7950b); }
+
+.home-block-icon  { width:60px; height:60px; border:3px solid rgba(255,255,255,.3); display:flex; align-items:center; justify-content:center; font-size:28px; flex-shrink:0; box-shadow:3px 3px 0 rgba(0,0,0,.3); background:rgba(255,255,255,.1); }
+.home-block-title { font-size:var(--fs-lg); color:#fff; text-shadow:1px 1px 0 rgba(0,0,0,.5); margin-bottom:6px; }
+.home-block-desc  { font-size:var(--fs-sm); color:rgba(255,255,255,.72); line-height:1.9; }
+.home-block-text  { flex:1; }
+.home-block-arrow { font-size:22px; color:rgba(255,255,255,.5); flex-shrink:0; }
+
+.home-chall-strip {
+  background:var(--brown-dark); border-top:3px solid var(--brown-mid);
+  padding:12px 22px; display:flex; align-items:center; gap:14px; flex-shrink:0; flex-wrap:wrap;
+}
+.home-chall-label { font-size:var(--fs-xs); color:var(--gold); flex-shrink:0; }
+
+/* Two-col grid */
+.two-col { display:grid; grid-template-columns:1fr 1fr; gap:22px; align-items:start; }
+
+/* Game layout */
+.game-layout { display:grid; grid-template-columns:1fr 1fr; gap:22px; }
+
+/* Staff wrap */
+.staff-wrap { display:flex; align-items:center; justify-content:center; padding:18px 0; }
+
+/* Play sound button */
+.play-sound-btn {
+  display:inline-flex; align-items:center; gap:8px;
+  background:linear-gradient(180deg,#2980b9,#1a5276);
+  color:#fff; border:3px solid #1a5276;
+  padding:10px 20px; font-family:var(--font); font-size:var(--fs-sm);
+  cursor:pointer; box-shadow:3px 3px 0 #0e3460; margin-top:10px;
+}
+.play-sound-btn:active { transform:translate(2px,2px); box-shadow:1px 1px 0 #0e3460!important; }
+
+/* Animations */
+@keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+.fade-in { animation:fadeIn .22s ease both; }
+
+@keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.04)} }
+.pulse { animation:pulse .4s ease; }
+
+/* ═══════════════════════════════════════
+   RESPONSIVE — portrait / mobile
+   ═══════════════════════════════════════ */
+@media (orientation:portrait), (max-width:700px) {
+  #app { flex-direction: column; }
+  #sidebar { display: none; }
+  #topnav  { display: flex; flex-direction: column; }
+  #topbar  { display: none; }
+
+  #content { padding:16px 14px 28px; }
+
+  .two-col   { grid-template-columns:1fr; }
+  .game-layout { grid-template-columns:1fr; }
+
+  .home-blocks { grid-template-rows:repeat(4,minmax(70px,1fr)); }
+  .home-block  { padding:0 18px; gap:14px; }
+  .home-block-icon  { width:46px; height:46px; font-size:20px; }
+  .home-block-title { font-size:var(--fs-md); }
+  .home-block-desc  { font-size:var(--fs-xs); }
+
+  .home-chall-strip { padding:10px 14px; gap:10px; }
+
+  :root {
+    --fs-xs:  12px;
+    --fs-sm:  14px;
+    --fs-md:  16px;
+    --fs-lg:  20px;
+    --fs-xl:  24px;
+    --fs-2xl: 30px;
+    --fs-3xl: 44px;
+  }
+
+  .opt-btn { padding:16px 8px; font-size:var(--fs-md); }
+  .nav-item { min-height:64px; }
+  .btn { font-size:var(--fs-sm); padding:12px 18px; }
+  .btn-gold { font-size:var(--fs-md); }
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ══ SIDEBAR (landscape) ══ -->
+  <div id="sidebar">
+    <div class="stripe"></div>
+    <div id="logo-area">
+      <svg class="sidebar-staff" width="220" height="48" viewBox="0 0 220 48">
+        <line x1="10" y1="8"  x2="210" y2="8"  stroke="rgba(245,232,200,.38)" stroke-width="1.8"/>
+        <line x1="10" y1="18" x2="210" y2="18" stroke="rgba(245,232,200,.38)" stroke-width="1.8"/>
+        <line x1="10" y1="28" x2="210" y2="28" stroke="rgba(245,232,200,.38)" stroke-width="1.8"/>
+        <line x1="10" y1="38" x2="210" y2="38" stroke="rgba(245,232,200,.38)" stroke-width="1.8"/>
+        <text x="12" y="46" style="font-size:44px;fill:rgba(245,200,66,.65);font-family:serif">𝄞</text>
+        <ellipse cx="88" cy="28" rx="8" ry="6" fill="none" stroke="rgba(245,200,66,.75)" stroke-width="2" transform="rotate(-15 88 28)"/>
+        <line x1="95" y1="28" x2="95" y2="8" stroke="rgba(245,200,66,.75)" stroke-width="1.8"/>
+        <ellipse cx="130" cy="18" rx="8" ry="6" fill="none" stroke="rgba(245,200,66,.75)" stroke-width="2" transform="rotate(-15 130 18)"/>
+        <line x1="137" y1="18" x2="137" y2="-2" stroke="rgba(245,200,66,.75)" stroke-width="1.8"/>
+        <ellipse cx="168" cy="38" rx="8" ry="6" fill="none" stroke="rgba(245,200,66,.75)" stroke-width="2" transform="rotate(-15 168 38)"/>
+        <line x1="175" y1="38" x2="175" y2="18" stroke="rgba(245,200,66,.75)" stroke-width="1.8"/>
+      </svg>
+      <div class="logo-title">五线谱<br>认音游戏</div>
+      <div class="logo-sub">STAFF NOTE READING</div>
+    </div>
+
+    <div id="challenger-badge">
+      <div class="badge-label">当前挑战者</div>
+      <div id="badge-name">— 未选择 —</div>
+    </div>
+
+    <nav id="nav-menu">
+      <button class="nav-item nav-home active" onclick="goTo('home')">
+        <span class="nav-icon">&#9733;</span>
+        <span class="nav-label">主页<div class="nav-label-sub">HOME</div></span>
+      </button>
+      <button class="nav-item nav-chall" onclick="goTo('challenger')">
+        <span class="nav-icon">&#9786;</span>
+        <span class="nav-label">挑战者<div class="nav-label-sub">CHALLENGERS</div></span>
+      </button>
+      <button class="nav-item nav-diff" onclick="goTo('difficulty')">
+        <span class="nav-icon">&#9881;</span>
+        <span class="nav-label">难度设置<div class="nav-label-sub">DIFFICULTY</div></span>
+      </button>
+      <button class="nav-item nav-game" onclick="goTo('game')">
+        <span class="nav-icon">&#9835;</span>
+        <span class="nav-label">认音游戏<div class="nav-label-sub">PLAY GAME</div></span>
+      </button>
+      <button class="nav-item nav-scores" onclick="goTo('scores')">
+        <span class="nav-icon">&#9734;</span>
+        <span class="nav-label">我的成绩<div class="nav-label-sub">MY SCORES</div></span>
+      </button>
+    </nav>
+    <div class="sidebar-footer">为钢琴学生而设计 · FOR PIANO STUDENTS</div>
+  </div>
+
+  <!-- ══ TOPNAV (portrait) ══ -->
+  <div id="topnav">
+    <div class="stripe"></div>
+    <div id="topnav-bar">
+      <button id="hamburger" onclick="toggleMenu()">
+        <span></span><span></span><span></span>
+      </button>
+      <span id="topnav-title">五线谱认音游戏</span>
+      <span id="topnav-badge"></span>
+    </div>
+    <div id="mobile-menu">
+      <button class="mobile-nav-item mni-home"   onclick="goTo('home');toggleMenu(true)">  <span style="font-size:22px">&#9733;</span> 主页</button>
+      <button class="mobile-nav-item mni-chall"  onclick="goTo('challenger');toggleMenu(true)"><span style="font-size:22px">&#9786;</span> 挑战者</button>
+      <button class="mobile-nav-item mni-diff"   onclick="goTo('difficulty');toggleMenu(true)"><span style="font-size:22px">&#9881;</span> 难度设置</button>
+      <button class="mobile-nav-item mni-game"   onclick="goTo('game');toggleMenu(true)"><span style="font-size:22px">&#9835;</span> 认音游戏</button>
+      <button class="mobile-nav-item mni-scores" onclick="goTo('scores');toggleMenu(true)"><span style="font-size:22px">&#9734;</span> 我的成绩</button>
+    </div>
+  </div>
+
+  <!-- ══ MAIN ══ -->
+  <div id="main">
+    <div id="topbar">
+      <span class="topbar-title" id="topbar-title">五线谱认音游戏</span>
+      <span class="topbar-info">
+        <span id="tb-challenger">挑战者：未选择</span>
+        <span id="tb-score" class="topbar-score">本轮：— 分</span>
+      </span>
+    </div>
+    <div id="content"></div>
+  </div>
+</div>
+
+<script>
+'use strict';
+// ═══════════════════════════════════════════════════════
+// AUDIO ENGINE  —  Web Audio API piano synthesis
+// ═══════════════════════════════════════════════════════
+let audioCtx = null;
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+// Note name → frequency (Hz)  A4 = 440 Hz
+const NOTE_FREQ = {
+  'E2':82.41,'F2':87.31,'G2':98.00,'A2':110.00,'B2':123.47,
+  'C3':130.81,'D3':146.83,'E3':164.81,'F3':174.61,'G3':196.00,'A3':220.00,'B3':246.94,
+  'C4':261.63,'D4':293.66,'E4':329.63,'F4':349.23,'G4':392.00,'A4':440.00,'B4':493.88,
+  'C5':523.25,'D5':587.33,'E5':659.25,'F5':698.46,'G5':783.99,'A5':880.00
+};
+
+function playPianoNote(noteName, duration) {
+  duration = duration || 2.0;
+  try {
+    const ctx = getAudioCtx();
+    const freq = NOTE_FREQ[noteName];
+    if (!freq) return;
+    const now = ctx.currentTime;
+
+    // Master gain
+    const master = ctx.createGain();
+    master.connect(ctx.destination);
+
+    // Piano-like timbre: fundamental + harmonics with decreasing amplitude
+    const harmonics = [
+      {mult:1,   amp:0.50},
+      {mult:2,   amp:0.25},
+      {mult:3,   amp:0.14},
+      {mult:4,   amp:0.08},
+      {mult:5,   amp:0.04},
+      {mult:6,   amp:0.02},
+      {mult:7,   amp:0.01},
+    ];
+
+    harmonics.forEach(h => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq * h.mult;
+
+      // Piano envelope: quick attack, slow decay, no sustain
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(h.amp, now + 0.008);   // attack
+      gain.gain.exponentialRampToValueAtTime(h.amp * 0.5, now + 0.15); // initial decay
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + duration); // full decay
+
+      osc.connect(gain);
+      gain.connect(master);
+      osc.start(now);
+      osc.stop(now + duration + 0.05);
+    });
+
+    // Overall envelope
+    master.gain.setValueAtTime(0.7, now);
+    master.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+  } catch(e) { console.warn('Audio error:', e); }
+}
+
+// ═══════════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════════
+const TREBLE_NOTES = [
+  {name:'C4',solfege:'Do',display:'中央C (C4)',position:-2, clef:'treble'},
+  {name:'D4',solfege:'Re',display:'D4',        position:-1.5,clef:'treble'},
+  {name:'E4',solfege:'Mi',display:'E4',        position:-1, clef:'treble'},
+  {name:'F4',solfege:'Fa',display:'F4',        position:-.5,clef:'treble'},
+  {name:'G4',solfege:'Sol',display:'G4',       position:0,  clef:'treble'},
+  {name:'A4',solfege:'La',display:'A4',        position:.5, clef:'treble'},
+  {name:'B4',solfege:'Si',display:'B4',        position:1,  clef:'treble'},
+  {name:'C5',solfege:'Do',display:'C5',        position:1.5,clef:'treble'},
+  {name:'D5',solfege:'Re',display:'D5',        position:2,  clef:'treble'},
+  {name:'E5',solfege:'Mi',display:'E5',        position:2.5,clef:'treble'},
+  {name:'F5',solfege:'Fa',display:'F5',        position:3,  clef:'treble'},
+  {name:'G5',solfege:'Sol',display:'G5',       position:3.5,clef:'treble'},
+  {name:'A5',solfege:'La',display:'A5',        position:4,  clef:'treble'},
+];
+const BASS_NOTES = [
+  {name:'E2',solfege:'Mi',display:'E2',        position:-2, clef:'bass'},
+  {name:'F2',solfege:'Fa',display:'F2',        position:-1.5,clef:'bass'},
+  {name:'G2',solfege:'Sol',display:'G2',       position:-1, clef:'bass'},
+  {name:'A2',solfege:'La',display:'A2',        position:-.5,clef:'bass'},
+  {name:'B2',solfege:'Si',display:'B2',        position:0,  clef:'bass'},
+  {name:'C3',solfege:'Do',display:'C3',        position:.5, clef:'bass'},
+  {name:'D3',solfege:'Re',display:'D3',        position:1,  clef:'bass'},
+  {name:'E3',solfege:'Mi',display:'E3',        position:1.5,clef:'bass'},
+  {name:'F3',solfege:'Fa',display:'F3',        position:2,  clef:'bass'},
+  {name:'G3',solfege:'Sol',display:'G3',       position:2.5,clef:'bass'},
+  {name:'A3',solfege:'La',display:'A3',        position:3,  clef:'bass'},
+  {name:'B3',solfege:'Si',display:'B3',        position:3.5,clef:'bass'},
+  {name:'C4',solfege:'Do',display:'中央C (C4)',position:4,  clef:'bass'},
+];
+
+// ═══════════════════════════════════════════════════════
+// LOCALSTORAGE PERSISTENCE
+// ═══════════════════════════════════════════════════════
+const LS_KEY = 'staffgame_v1';
+
+function lsSave(){
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify({
+      challengers: S.challengers,
+      scores:      S.scores,
+      challenger:  S.challenger,
+      timeLimit:   S.timeLimit,
+      questionCount: S.questionCount,
+      clefChoice:  S.clefChoice,
+    }));
+  } catch(e){ console.warn('localStorage save failed:', e); }
+}
+
+function lsLoad(){
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw) return {};
+    return JSON.parse(raw);
+  } catch(e){ return {}; }
+}
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+const _saved = lsLoad();
+const S = {
+  page:'home',
+  challenger:    _saved.challenger    || '',
+  challengers:   _saved.challengers   || [],
+  timeLimit:     _saved.timeLimit     || 'none',
+  questionCount: _saved.questionCount || 5,
+  clefChoice:    _saved.clefChoice    || 'treble',
+  gamePhase:'idle',
+  warmupNotes:[], warmupIndex:0,
+  questions:[], currentQ:0,
+  answered:false, selected:null, score:0,
+  timeLeft:null, timerInterval:null,
+  scores:        _saved.scores        || {},
+  lastScore:null, lastTotal:0,
+  answers:[],
+  renamingIndex:-1,
+};
+
+const TIME_MAP    = {none:null,'10s':10,'5s':5,'3s':3,'1s':1};
+const TIME_LABELS = {none:'无限制','10s':'10秒内','5s':'5秒内','3s':'3秒内','1s':'1秒内'};
+
+// ═══════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════
+function shuffle(a){ a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];}return a; }
+function pool(clef){ return clef==='treble'?TREBLE_NOTES:clef==='bass'?BASS_NOTES:[...TREBLE_NOTES,...BASS_NOTES]; }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+function genQuestions(count, clef){
+  const p = pool(clef);
+  const res=[];
+  while(res.length<count) res.push(...shuffle(p));
+  return res.slice(0,count).map(note=>{
+    const sp = pool(note.clef);
+    const wrongs = shuffle(sp.filter(n=>n.name!==note.name)).slice(0,3).map(n=>n.name);
+    return {...note, options:shuffle([note.name,...wrongs])};
+  });
+}
+
+function stopTimer(){ if(S.timerInterval){clearInterval(S.timerInterval);S.timerInterval=null;} }
+
+// ═══════════════════════════════════════════════════════
+// SVG BUILDERS
+// ═══════════════════════════════════════════════════════
+function staffSVG(note, w, h, staffTop, lineGap){
+  const cx=w/2, staffH=lineGap*4, nr=lineGap*0.78;
+  const noteY = pos => staffTop + staffH - (pos+1)*lineGap;
+  const ny = noteY(note.position);
+  let s = `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="display:block;margin:0 auto;max-width:100%">`;
+
+  // 5 staff lines
+  for(let i=0;i<5;i++){
+    const y = staffTop+(4-i)*lineGap;
+    s+=`<line x1="${cx-90}" y1="${y}" x2="${cx+90}" y2="${y}" stroke="#5a3e1b" stroke-width="2"/>`;
+  }
+
+  // Clef
+  if(note.clef==='treble')
+    s+=`<text x="${cx-84}" y="${staffTop+staffH+8}" style="font-size:${lineGap*4.6}px;fill:#5a3e1b;font-family:serif;user-select:none">𝄞</text>`;
+  else
+    s+=`<text x="${cx-84}" y="${staffTop+lineGap*0.6}" style="font-size:${lineGap*3.3}px;fill:#5a3e1b;font-family:serif;user-select:none">𝄢</text>`;
+
+  // Ledger lines
+  const lw = nr*2.4;
+  if(note.position<=-2){
+    for(let p=-2;p>=note.position;p-=2){
+      const ly=noteY(p);
+      s+=`<line x1="${cx-lw}" y1="${ly}" x2="${cx+lw}" y2="${ly}" stroke="#5a3e1b" stroke-width="2"/>`;
+    }
+    if(note.position===-1.5) s+=`<line x1="${cx-lw}" y1="${noteY(-2)}" x2="${cx+lw}" y2="${noteY(-2)}" stroke="#5a3e1b" stroke-width="2"/>`;
+  }
+  if(note.position>=4){
+    for(let p=4;p<=note.position;p+=2){
+      const ly=noteY(p);
+      s+=`<line x1="${cx-lw}" y1="${ly}" x2="${cx+lw}" y2="${ly}" stroke="#5a3e1b" stroke-width="2"/>`;
+    }
+  }
+  if(note.position===3.5) s+=`<line x1="${cx-lw}" y1="${noteY(4)}" x2="${cx+lw}" y2="${noteY(4)}" stroke="#5a3e1b" stroke-width="2"/>`;
+
+  // Whole note
+  s+=`<ellipse cx="${cx}" cy="${ny}" rx="${nr}" ry="${nr*0.72}" fill="none" stroke="#c0392b" stroke-width="2.6"/>`;
+  s+=`<ellipse cx="${cx}" cy="${ny}" rx="${nr*0.40}" ry="${nr*0.30}" fill="#fffef5"/>`;
+  s+=`</svg>`;
+  return s;
+}
+
+function pianoSVG(noteName, w, h){
+  const nb=noteName.replace(/\d/g,'');
+  const wk=['C','D','E','F','G','A','B'];
+  const kw=(w-20)/7, kh=h-20;
+  const bw=kw*0.62, bh=kh*0.60;
+  const sx=10;
+  let s=`<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="display:block;margin:0 auto;max-width:100%">`;
+  wk.forEach((k,i)=>{
+    s+=`<rect x="${sx+i*kw}" y="8" width="${kw-2.5}" height="${kh}" fill="${k===nb?'#f5c842':'#fdfaf0'}" stroke="#5a3e1b" stroke-width="1.8" rx="3"/>`;
+  });
+  wk.forEach((k,i)=>{
+    if(k==='E'||k==='B') return;
+    const bx=sx+i*kw+kw-bw/2;
+    s+=`<rect x="${bx}" y="8" width="${bw}" height="${bh}" fill="#2c1810" stroke="#5a3e1b" stroke-width="1.2" rx="3"/>`;
+  });
+  const idx=wk.indexOf(nb);
+  if(idx>=0){
+    const ax=sx+idx*kw+kw/2;
+    s+=`<text x="${ax}" y="${h-1}" text-anchor="middle" style="font-size:11px;fill:#c0392b;font-family:'Press Start 2P',monospace">&#9650;</text>`;
+  }
+  s+=`</svg>`;
+  return s;
+}
+
+// ═══════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════
+function goTo(page){
+  S.page=page;
+  document.querySelectorAll('.nav-item').forEach((b,i)=>{
+    b.classList.toggle('active',['home','challenger','difficulty','game','scores'][i]===page);
+  });
+  const titles={home:'五线谱认音游戏',challenger:'挑战者管理',difficulty:'难度设置',game:'认音游戏',scores:'我的成绩'};
+  document.getElementById('topbar-title').textContent = titles[page]||'';
+  document.getElementById('topnav-title').textContent = titles[page]||'';
+  render();
+}
+
+function toggleMenu(close){
+  const m=document.getElementById('mobile-menu');
+  if(close) m.classList.remove('open');
+  else m.classList.toggle('open');
+}
+
+function updateTopbar(){
+  document.getElementById('badge-name').textContent = S.challenger||'— 未选择 —';
+  document.getElementById('tb-challenger').textContent = '挑战者：'+(S.challenger||'未选择');
+  document.getElementById('topnav-badge').textContent  = S.challenger ? ('★ '+S.challenger) : '';
+  document.getElementById('tb-score').textContent =
+    S.gamePhase==='playing' ? `本轮：${S.score} 分` :
+    S.lastScore!==null      ? `上轮：${S.lastScore} 分` : '本轮：— 分';
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════
+function render(){
+  updateTopbar();
+  const c=document.getElementById('content');
+  c.innerHTML='';
+  const d=document.createElement('div');
+  d.className='fade-in';
+  d.style.height='100%';
+  if(S.page==='home')        d.innerHTML=renderHome();
+  else if(S.page==='challenger') d.innerHTML=renderChallenger();
+  else if(S.page==='difficulty') d.innerHTML=renderDifficulty();
+  else if(S.page==='game')   d.innerHTML=renderGame();
+  else if(S.page==='scores') d.innerHTML=renderScores();
+  c.appendChild(d);
+  bindEvents();
+}
+
+// ─── HOME ───────────────────────────────────────────
+function renderHome(){
+  const chips = S.challengers.map(n=>
+    `<button class="chall-chip ${S.challenger===n?'active':''}" onclick="selectChallenger('${esc(n)}')">${esc(n)}</button>`
+  ).join('');
+  return `
+  <div id="home-page" style="display:flex;flex-direction:column;height:100%">
+    <div class="home-welcome">
+      <h1>欢迎来挑战！</h1>
+      <p>认识五线谱上的音符 · 提升识谱能力 · 趣味闯关</p>
+    </div>
+    <div class="home-blocks" style="flex:1">
+      <button class="home-block hb-chall" onclick="goTo('challenger')">
+        <div class="home-block-icon">&#9786;</div>
+        <div class="home-block-text">
+          <div class="home-block-title">挑战者</div>
+          <div class="home-block-desc">添加与管理挑战者 · 选择当前参赛者</div>
+        </div>
+        <div class="home-block-arrow">&#9654;</div>
+      </button>
+      <button class="home-block hb-diff" onclick="goTo('difficulty')">
+        <div class="home-block-icon">&#9881;</div>
+        <div class="home-block-text">
+          <div class="home-block-title">难度设置</div>
+          <div class="home-block-desc">时间限制 · 每轮题数 · 谱号选择</div>
+        </div>
+        <div class="home-block-arrow">&#9654;</div>
+      </button>
+      <button class="home-block hb-game" onclick="startGameFromHome()">
+        <div class="home-block-icon">&#9835;</div>
+        <div class="home-block-text">
+          <div class="home-block-title">认音游戏</div>
+          <div class="home-block-desc">热身预习 · 闯关答题 · 即时反馈</div>
+        </div>
+        <div class="home-block-arrow">&#9654;</div>
+      </button>
+      <button class="home-block hb-scores" onclick="goTo('scores')">
+        <div class="home-block-icon">&#9733;</div>
+        <div class="home-block-text">
+          <div class="home-block-title">我的成绩</div>
+          <div class="home-block-desc">本轮成绩 · 挑战者累计排行</div>
+        </div>
+        <div class="home-block-arrow">&#9654;</div>
+      </button>
+    </div>
+    <div class="home-chall-strip">
+      <span class="home-chall-label">快速选择：</span>
+      ${chips}
+      <button class="chall-chip chall-chip-add" onclick="goTo('challenger')">+ 添加挑战者</button>
+    </div>
+  </div>`;
+}
+
+function startGameFromHome(){ startGame(); goTo('game'); }
+function selectChallenger(n){ S.challenger=n; lsSave(); updateTopbar(); render(); }
+
+// ─── CHALLENGER ─────────────────────────────────────
+function renderChallenger(){
+  const rows = S.challengers.map((n,i)=>{
+    const isActive = S.challenger===n;
+    const renameId = `rename-input-${i}`;
+    return `
+    <div class="chall-row ${isActive?'active-row':''}" style="flex-wrap:wrap;gap:10px;padding:14px 16px">
+      ${S.renamingIndex===i
+        ? `<div style="display:flex;gap:10px;flex:1;min-width:200px">
+             <input class="pixel-input" id="${renameId}" value="${esc(n)}" style="flex:1;font-size:var(--fs-md)" onkeydown="if(event.key==='Enter')confirmRename(${i})"/>
+             <button class="btn btn-green" style="padding:8px 14px;font-size:var(--fs-sm)" onclick="confirmRename(${i})">确认</button>
+             <button class="btn btn-red" style="background:#888;border-color:#666;box-shadow:2px 2px 0 #444;padding:8px 12px;font-size:var(--fs-sm)" onclick="cancelRename()">取消</button>
+           </div>`
+        : `<span class="chall-row-name">${esc(n)}</span>`
+      }
+      ${S.renamingIndex===i ? '' : `
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        ${isActive
+          ? `<button class="btn btn-gold" style="font-size:var(--fs-sm);padding:10px 14px" onclick="startWarmupFor('${esc(n)}')">开始热身预习</button>
+             <button class="btn" style="background:linear-gradient(180deg,#8e44ad,#6c3483);color:#fff;border-color:#6c3483;box-shadow:3px 3px 0 #4a235a;font-size:var(--fs-sm);padding:10px 14px" onclick="startDirectGameFor('${esc(n)}')">开始认音游戏</button>`
+          : `<button class="btn btn-green" style="padding:10px 16px;font-size:var(--fs-sm)" onclick="selectChallenger('${esc(n)}')">选择该挑战者</button>`
+        }
+        <button class="btn btn-blue" style="font-size:var(--fs-sm);padding:10px 14px" onclick="startRename(${i})">重命名</button>
+        <button class="btn btn-red" style="background:#888;border-color:#666;box-shadow:3px 3px 0 #444;padding:10px 14px;font-size:var(--fs-sm)" onclick="removeChallenger(${i})">X 删除</button>
+      </div>`}
+    </div>`}).join('');
+  return `
+  <div class="two-col">
+    <div>
+      <div class="card">
+        <div class="card-title">添加挑战者</div>
+        <div style="display:flex;gap:12px;margin-bottom:8px">
+          <input class="pixel-input" id="new-chall-input" placeholder="输入昵称..." style="flex:1" onkeydown="if(event.key==='Enter')addChallenger()"/>
+          <button class="btn btn-gold" style="padding:12px 18px;font-size:var(--fs-lg)" onclick="addChallenger()">+</button>
+        </div>
+        <div class="section-hint">按回车或点击 + 添加</div>
+      </div>
+      <div class="card" style="background:#e8f5e9;border-color:#27ae60">
+        <div class="card-title" style="color:#1e5631;border-color:#1e5631">计分规则</div>
+        <div style="font-size:var(--fs-sm);color:#1e5631;line-height:2.5">
+          5题全对 = +5分<br>10题全对 = +10分<br>20题全对 = +20分<br>每错1题 = −1分
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">挑战者列表（${S.challengers.length}人）</div>
+      ${S.challengers.length===0
+        ?'<div style="font-size:var(--fs-md);color:var(--red-dark);text-align:center;padding:24px">暂无挑战者，快来添加吧！</div>'
+        :rows}
+    </div>
+  </div>`;
+}
+
+function addChallenger(){
+  const inp=document.getElementById('new-chall-input');
+  if(!inp) return;
+  const n=inp.value.trim();
+  if(n&&!S.challengers.includes(n)){ S.challengers.push(n); inp.value=''; lsSave(); render(); }
+}
+function removeChallenger(i){
+  if(S.challenger===S.challengers[i]) S.challenger='';
+  S.challengers.splice(i,1); lsSave(); render();
+}
+function startRename(i){
+  S.renamingIndex=i; render();
+  setTimeout(()=>{ const el=document.getElementById('rename-input-'+i); if(el){el.focus();el.select();} },80);
+}
+function cancelRename(){ S.renamingIndex=-1; render(); }
+function confirmRename(i){
+  const el=document.getElementById('rename-input-'+i);
+  if(!el) return;
+  const newName=el.value.trim();
+  if(!newName){ cancelRename(); return; }
+  if(S.challengers.includes(newName)&&newName!==S.challengers[i]){ alert('该名字已存在，请换一个！'); return; }
+  // Also rename the score entry if it exists
+  if(S.scores[S.challengers[i]]!==undefined){
+    S.scores[newName]=(S.scores[newName]||0)+S.scores[S.challengers[i]];
+    delete S.scores[S.challengers[i]];
+  }
+  if(S.challenger===S.challengers[i]) S.challenger=newName;
+  S.challengers[i]=newName;
+  S.renamingIndex=-1; lsSave(); render();
+}
+function startWarmupFor(n){ S.challenger=n; lsSave(); startGame(); goTo('game'); }
+function startDirectGameFor(n){ S.challenger=n; lsSave(); startGame(); S.gamePhase='playing'; startQTimer(); goTo('game'); }
+
+// ─── DIFFICULTY ─────────────────────────────────────
+function renderDifficulty(){
+  function rg(label,opts,key,hint){
+    const btns=opts.map(o=>{
+      const v=o.value!==undefined?o.value:o;
+      const l=o.label!==undefined?o.label:(o+'题');
+      return `<div class="radio-opt ${S[key]===v?'selected':''}" onclick="setS('${key}','${v}');render()">
+        <div class="radio-dot"></div>${l}</div>`;
+    }).join('');
+    return `<div class="radio-group">
+      <span class="radio-label">${label}</span>
+      <div class="radio-options">${btns}</div>
+      ${hint?`<div class="section-hint">${hint}</div>`:''}
+    </div>`;
+  }
+  const tlOpts=[{value:'none',label:'无限制'},{value:'10s',label:'10秒内'},{value:'5s',label:'5秒内'},{value:'3s',label:'3秒内'},{value:'1s',label:'1秒内'}];
+  const clefOpts=[{value:'treble',label:'高音谱号'},{value:'bass',label:'低音谱号'},{value:'mixed',label:'高低音混合'}];
+  return `
+  <div class="two-col">
+    <div>
+      <div class="card">
+        <div class="card-title">时间限制</div>
+        ${rg('每道题的作答时间',tlOpts,'timeLimit','超时自动扣分并显示正确答案')}
+      </div>
+      <div class="card">
+        <div class="card-title">每轮题数</div>
+        ${rg('本轮共答几道题',[5,10,20],'questionCount','题数越多挑战越大')}
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-title">谱号选择</div>
+        ${rg('本轮使用的谱号类型',clefOpts,'clefChoice','混合模式随机出现高音与低音谱号')}
+      </div>
+      <div class="card" style="background:#fff9e6;border-color:var(--gold-dark)">
+        <div class="card-title" style="color:#7d6608;border-color:#7d6608">当前设置</div>
+        <div style="font-size:var(--fs-sm);color:#7d6608;line-height:2.8">
+          时间限制：${TIME_LABELS[S.timeLimit]}<br>
+          每轮题数：${S.questionCount} 题<br>
+          谱号：${S.clefChoice==='treble'?'高音谱号':S.clefChoice==='bass'?'低音谱号':'高低音混合'}
+        </div>
+        <button class="btn btn-gold btn-full" style="margin-top:16px" onclick="startGame();goTo('game')">
+          开始热身预习 &#9654;
+        </button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function setS(k,v){ if(k==='questionCount') S[k]=parseInt(v); else S[k]=v; lsSave(); }
+
+// ─── GAME ────────────────────────────────────────────
+function startGame(){
+  stopTimer();
+  const qs=genQuestions(S.questionCount,S.clefChoice);
+  const seen=new Set(), warmup=[];
+  for(const q of qs){ const key=q.name+q.clef; if(!seen.has(key)){seen.add(key);warmup.push(q);} }
+  S.warmupNotes=warmup; S.warmupIndex=0;
+  S.questions=qs; S.currentQ=0;
+  S.score=0; S.answered=false; S.selected=null;
+  S.answers=[];
+  S.gamePhase='warmup';
+}
+
+function startPlaying(){
+  stopTimer();
+  S.gamePhase='playing'; S.currentQ=0; S.answered=false; S.selected=null;
+  startQTimer();
+}
+
+function startQTimer(){
+  stopTimer();
+  const tl=TIME_MAP[S.timeLimit];
+  if(!tl){S.timeLeft=null;return;}
+  S.timeLeft=tl;
+  S.timerInterval=setInterval(()=>{
+    S.timeLeft--;
+    updateTimerEl();
+    if(S.timeLeft<=0){
+      stopTimer();
+      S.answered=true; S.selected=null; S.score--;
+      S.answers.push({name:S.questions[S.currentQ].name,clef:S.questions[S.currentQ].clef,correct:false,timeout:true});
+      render();
+    }
+  },1000);
+}
+
+function updateTimerEl(){
+  const el=document.getElementById('timer-box');
+  if(!el) return;
+  el.textContent=S.timeLeft+'s';
+  el.className='timer-box '+(S.timeLeft<=3?'timer-urgent':'timer-normal');
+}
+
+function handleAnswer(opt){
+  if(S.answered) return;
+  stopTimer();
+  S.selected=opt; S.answered=true;
+  const correct = opt===S.questions[S.currentQ].name;
+  if(correct) S.score++; else S.score--;
+  S.answers.push({name:S.questions[S.currentQ].name,clef:S.questions[S.currentQ].clef,correct,timeout:false});
+  // Play the correct note after answering
+  playPianoNote(S.questions[S.currentQ].name, 2.2);
+  render();
+}
+
+function nextQuestion(){
+  if(S.currentQ+1>=S.questions.length){
+    S.gamePhase='result'; S.lastScore=S.score; S.lastTotal=S.questions.length;
+    if(S.challenger) S.scores[S.challenger]=(S.scores[S.challenger]||0)+S.score;
+    lsSave();
+    render();
+  } else {
+    S.currentQ++; S.answered=false; S.selected=null;
+    startQTimer(); render();
+  }
+}
+
+function renderGame(){
+  if(S.gamePhase==='idle') return `
+    <div class="card" style="text-align:center;max-width:520px;margin:50px auto">
+      <div style="font-size:var(--fs-md);color:var(--red-dark);margin-bottom:20px">请先在「难度设置」中配置后开始游戏</div>
+      <button class="btn btn-gold btn-full" onclick="goTo('difficulty')">前往难度设置</button>
+    </div>`;
+  if(S.gamePhase==='warmup')  return renderWarmup();
+  if(S.gamePhase==='playing') return renderPlaying();
+  if(S.gamePhase==='result')  return renderResult();
+  return '';
+}
+
+function renderWarmup(){
+  const note=S.warmupNotes[S.warmupIndex];
+  const total=S.warmupNotes.length;
+  const pct=((S.warmupIndex+1)/total*100).toFixed(0);
+  const isLast=S.warmupIndex>=total-1;
+  const clefLabel=note.clef==='treble'?'高音谱号':'低音谱号';
+  // Responsive SVG sizes
+  const isMobile=window.innerWidth<700||window.innerHeight>window.innerWidth;
+  const sw=isMobile?300:360, sh=isMobile?170:200, st=isMobile?48:56, lg=isMobile?13:16;
+  const pw=isMobile?260:300, ph=isMobile?80:90;
+
+  return `
+  <div>
+    <div style="margin-bottom:14px">
+      <button class="btn btn-red" style="font-size:var(--fs-sm);padding:10px 18px;background:linear-gradient(180deg,#888,#666);border-color:#555;box-shadow:3px 3px 0 #333" onclick="startPlaying();render()">
+        &#9193; 跳过热身预习，直接开始游戏
+      </button>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <span style="font-size:var(--fs-md);color:var(--brown-mid)">音符热身预习 ${S.warmupIndex+1} / ${total}</span>
+      <span style="font-size:var(--fs-md);color:var(--red-dark)">[ ${clefLabel} ]</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+    <div class="two-col">
+      <div class="card" style="text-align:center">
+        <div class="card-title" style="text-align:center">五线谱位置</div>
+        <div class="staff-wrap">${staffSVG(note,sw,sh,st,lg)}</div>
+        <button class="play-sound-btn btn-full" onclick="playPianoNote('${note.name}',2.5)" style="justify-content:center;font-size:var(--fs-md)">
+          &#9654; 点击聆听此音
+        </button>
+      </div>
+      <div>
+        <div class="warmup-note-badge">
+          <div class="warmup-note-name">${note.name}</div>
+          <div class="warmup-solfege">唱名：${note.solfege}</div>
+        </div>
+        <div class="card" style="text-align:center">
+          <div class="card-title" style="text-align:center">对应琴键位置</div>
+          ${pianoSVG(note.name,pw,ph)}
+          <div style="font-size:var(--fs-sm);color:var(--brown-mid);margin-top:10px">▲ 黄色键即为该音符</div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:18px;display:flex;gap:16px;justify-content:center;flex-wrap:wrap">
+      ${S.warmupIndex>0?`<button class="btn btn-red" onclick="state_prev_warmup()">&lt; 上一张</button>`:''}
+      ${isLast
+        ?`<button class="btn btn-gold" style="font-size:var(--fs-xl);padding:16px 36px" onclick="startPlaying();render()">游戏开始！ &#9654;</button>`
+        :`<button class="btn btn-gold" onclick="state_next_warmup()">记住了 &#9654; 下一张</button>`}
+    </div>
+  </div>`;
+}
+
+function state_prev_warmup(){ S.warmupIndex--; render(); playPianoNote(S.warmupNotes[S.warmupIndex].name,2.5); }
+function state_next_warmup(){ S.warmupIndex++; render(); playPianoNote(S.warmupNotes[S.warmupIndex].name,2.5); }
+
+function renderPlaying(){
+  const q=S.questions[S.currentQ];
+  const total=S.questions.length;
+  const pct=(S.currentQ/total*100).toFixed(0);
+  const tl=TIME_MAP[S.timeLimit];
+  const isMobile=window.innerWidth<700||window.innerHeight>window.innerWidth;
+  const sw=isMobile?300:380, sh=isMobile?180:220, st=isMobile?50:62, lg=isMobile?14:18;
+  const clefLabel=q.clef==='treble'?'高音谱号':'低音谱号';
+
+  const timerHTML=tl&&!S.answered
+    ?`<div style="text-align:center;margin-bottom:14px">
+        <span id="timer-box" class="timer-box ${S.timeLeft<=3?'timer-urgent':'timer-normal'}">${S.timeLeft}s</span>
+      </div>` :'';
+
+  let fb='';
+  if(S.answered){
+    if(S.selected===null)
+      fb=`<div class="feedback-banner fb-timeout">时间到！正确答案是 <strong>${q.name}</strong>（${q.solfege}）— 扣1分</div>`;
+    else if(S.selected===q.name)
+      fb=`<div class="feedback-banner fb-correct">&#10003; 正确！${q.name} = ${q.solfege} — +1分</div>`;
+    else
+      fb=`<div class="feedback-banner fb-wrong">&#10007; 答错了！正确答案是 <strong>${q.name}</strong>（${q.solfege}）— 扣1分</div>`;
+  }
+
+  const opts=q.options.map(o=>{
+    let cls='';
+    if(S.answered){ if(o===q.name) cls='correct'; else if(o===S.selected) cls='wrong'; else cls='neutral-show'; }
+    return `<button class="opt-btn ${cls}" onclick="handleAnswer('${o}')" ${S.answered?'disabled':''}>${o}</button>`;
+  }).join('');
+
+  const nextBtn=S.answered
+    ?`<button class="btn btn-gold btn-full" style="margin-top:12px" onclick="nextQuestion()">
+        ${S.currentQ+1>=total?'查看结果 &#9654;':'下一题 &#9654;'}
+      </button>` :'';
+
+  return `
+  <div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+      <span style="font-size:var(--fs-md);color:var(--brown-mid)">第 ${S.currentQ+1} / ${total} 题</span>
+      <span style="font-size:var(--fs-lg);color:var(--red-dark)">得分：${S.score}</span>
+      <span style="font-size:var(--fs-sm);color:var(--brown-light)">[ ${clefLabel} ]</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+    ${timerHTML}${fb}
+    <div class="game-layout">
+      <div class="card" style="text-align:center">
+        <div class="card-title" style="text-align:center">这是哪个音符？</div>
+        <div class="staff-wrap">${staffSVG(q,sw,sh,st,lg)}</div>
+      </div>
+      <div class="card">
+        <div class="card-title">请选择答案</div>
+        <div style="padding-top:4px">${opts}</div>
+        ${nextBtn}
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderResult(){
+  const max=S.lastTotal, s=S.lastScore, pct=s/max;
+  let msg='',mc='';
+  if(s===max)       {msg='满分！太厉害了！';    mc='#d4a017';}
+  else if(pct>=.8)  {msg='非常棒！继续保持！';  mc='#1e8449';}
+  else if(pct>=.6)  {msg='不错哦！再加把劲！';  mc='#1a5276';}
+  else if(pct>=0)   {msg='加油练习，你能行！';   mc='#7d6608';}
+  else              {msg='别灰心，再来一次！';   mc='#8b2500';}
+
+  const challInfo=S.challenger
+    ?`<div style="font-size:var(--fs-md);color:var(--brown-mid);margin-top:10px">${S.challenger} 累计总分：<span style="color:var(--red-dark)">${S.scores[S.challenger]||0}</span> 分</div>`:'';
+
+  const reviewRows=S.questions.map((q,i)=>{
+    const ans=S.answers[i]||{correct:false,timeout:false};
+    const bg=ans.correct?'#d5f5e3':ans.timeout?'#fdebd0':'#fadbd8';
+    const mark=ans.correct?'&#10003;':ans.timeout?'?':'&#10007;';
+    const mc2=ans.correct?'#145a32':ans.timeout?'#7e5109':'#8b2500';
+    return `<div style="display:flex;justify-content:space-between;padding:10px 14px;background:${bg};border-left:4px solid ${mc2};margin-bottom:4px;font-size:var(--fs-sm);color:var(--brown-dark)">
+      <span>第${i+1}题</span>
+      <span><strong>${q.name}</strong></span>
+      <span style="color:var(--brown-light)">${q.clef==='treble'?'高音':'低音'}</span>
+      <span style="color:${mc2};font-size:var(--fs-md)">${mark}</span>
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="two-col">
+    <div class="card" style="text-align:center">
+      <div class="card-title" style="text-align:center">— 本轮结果 —</div>
+      <div style="font-size:var(--fs-sm);color:var(--brown-mid);margin-bottom:12px">
+        ${max}题 · ${TIME_LABELS[S.timeLimit]} · ${S.clefChoice==='treble'?'高音谱号':S.clefChoice==='bass'?'低音谱号':'混合谱号'}
+      </div>
+      <div style="background:var(--gold);border:4px solid var(--brown-mid);padding:24px;box-shadow:5px 5px 0 var(--brown-dark);margin-bottom:16px">
+        <div class="score-big">${s}</div>
+        <div style="font-size:var(--fs-md);color:var(--brown-dark)">分（满分 ${max} 分）</div>
+      </div>
+      <div style="font-size:var(--fs-lg);color:${mc};margin-bottom:16px">${msg}</div>
+      ${challInfo}
+      <div style="display:flex;gap:12px;margin-top:20px;flex-wrap:wrap">
+        <button class="btn btn-gold" style="flex:1;min-width:140px" onclick="startGame();render()">再来一轮</button>
+        <button class="btn btn-red" style="flex:1;min-width:140px" onclick="goTo('scores')">查看成绩</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">本轮答题回顾</div>
+      <div style="font-size:var(--fs-sm);color:var(--brown-mid);margin-bottom:14px">&#10003; 答对 &#10007; 答错 ? 超时</div>
+      <div style="max-height:420px;overflow-y:auto">${reviewRows}</div>
+    </div>
+  </div>`;
+}
+
+// ─── SCORES ─────────────────────────────────────────
+function renderScores(){
+  const entries=Object.entries(S.scores).sort((a,b)=>b[1]-a[1]);
+  const cols=['lr-gold','lr-silver','lr-bronze'];
+  const board=entries.length===0
+    ?`<div style="font-size:var(--fs-md);color:var(--red-dark);text-align:center;padding:20px">暂无记录</div>`
+    :entries.map(([n,sc],i)=>`
+      <div class="leaderboard-row ${cols[i]||'lr-normal'}" style="gap:10px;flex-wrap:wrap">
+        <span style="color:var(--red-dark);font-size:var(--fs-lg);flex-shrink:0">#${i+1}</span>
+        <span style="flex:1;padding:0 10px;font-size:var(--fs-lg);min-width:80px">${esc(n)}</span>
+        <span style="font-size:var(--fs-2xl);color:var(--red-dark);flex-shrink:0">${sc}</span>
+        <span style="font-size:var(--fs-sm);color:var(--brown-mid);margin-left:4px;flex-shrink:0">分</span>
+        <button onclick="clearOneScore('${esc(n)}')" style="font-family:var(--font);font-size:var(--fs-xs);padding:6px 10px;background:#ddd;border:2px solid #999;box-shadow:2px 2px 0 #777;cursor:pointer;flex-shrink:0;color:#555">清零</button>
+      </div>`).join('');
+
+  const lastHTML=S.lastScore!==null
+    ?`<div style="background:var(--gold);border:4px solid var(--brown-mid);padding:20px;text-align:center;box-shadow:4px 4px 0 var(--brown-mid);margin-bottom:18px">
+        <div style="font-size:var(--fs-md);color:var(--brown-dark);margin-bottom:8px">本轮得分</div>
+        <div style="font-size:var(--fs-3xl);color:var(--red-dark)">${S.lastScore}</div>
+        <div style="font-size:var(--fs-sm);color:var(--brown-mid)">/ ${S.lastTotal} 分</div>
+      </div>`
+    :`<div style="font-size:var(--fs-md);color:var(--red-dark);text-align:center;padding:16px">还未完成任何游戏</div>`;
+
+  return `
+  <div class="two-col">
+    <div>
+      <div class="card">
+        <div class="card-title">本轮成绩</div>
+        ${lastHTML}
+        <button class="btn btn-gold btn-full" onclick="startGame();goTo('game')">开始新一轮</button>
+      </div>
+      <div class="card" style="background:#e8f5e9;border-color:#27ae60">
+        <div class="card-title" style="color:#1e5631;border-color:#1e5631">计分规则</div>
+        <div style="font-size:var(--fs-sm);color:#1e5631;line-height:2.8">
+          5题全对 = +5分<br>10题全对 = +10分<br>20题全对 = +20分<br>每错1题 = −1分
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px">
+        <div class="card-title" style="margin-bottom:0;border-bottom:none;padding-bottom:0">挑战者累计排行榜</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:var(--fs-xs);color:var(--brown-light)">分数已自动保存</span>
+          <span style="font-size:16px">&#128190;</span>
+          <button onclick="clearAllScores()" style="font-family:var(--font);font-size:var(--fs-xs);padding:7px 12px;background:linear-gradient(180deg,#e74c3c,#c0392b);color:#fff;border:2px solid var(--red-dark);box-shadow:2px 2px 0 var(--red-dark);cursor:pointer">全部清零</button>
+        </div>
+      </div>
+      <div style="border-top:2px solid var(--brown-mid);padding-top:14px">
+        ${board}
+      </div>
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// SCORE MANAGEMENT
+// ═══════════════════════════════════════════════════════
+function clearOneScore(name){
+  if(!confirm('确定要清除「'+name+'」的累计得分吗？')) return;
+  delete S.scores[name];
+  lsSave(); render();
+}
+function clearAllScores(){
+  if(!confirm('确定要清除所有挑战者的累计得分吗？此操作不可恢复。')) return;
+  S.scores={};
+  lsSave(); render();
+}
+
+// ═══════════════════════════════════════════════════════
+// BIND EVENTS
+// ═══════════════════════════════════════════════════════
+function bindEvents(){
+  const inp=document.getElementById('new-chall-input');
+  if(inp) inp.addEventListener('keydown',e=>{if(e.key==='Enter')addChallenger();});
+}
+
+// ═══════════════════════════════════════════════════════
+// AUTO-PLAY on warmup
+// ═══════════════════════════════════════════════════════
+const _origRender=render;
+// Play note automatically when warmup card appears
+const origRender=render;
+function render(){
+  updateTopbar();
+  const c=document.getElementById('content');
+  c.innerHTML='';
+  const d=document.createElement('div');
+  d.className='fade-in'; d.style.height='100%';
+  if(S.page==='home')        d.innerHTML=renderHome();
+  else if(S.page==='challenger') d.innerHTML=renderChallenger();
+  else if(S.page==='difficulty') d.innerHTML=renderDifficulty();
+  else if(S.page==='game')   d.innerHTML=renderGame();
+  else if(S.page==='scores') d.innerHTML=renderScores();
+  c.appendChild(d);
+  bindEvents();
+  // Auto-play current warmup note
+  if(S.page==='game'&&S.gamePhase==='warmup'&&S.warmupNotes.length){
+    // Small delay so user interaction has happened (iOS requires user gesture)
+    setTimeout(()=>{ try{ playPianoNote(S.warmupNotes[S.warmupIndex].name,2.5); }catch(e){} },300);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+render();
+</script>
+</body>
+</html>
